@@ -18,6 +18,6 @@ fn main() -> ExitCode {
     // install to whatever shelled out to this. stderr, not stdout: stdout is
     // data, and this is not.
     eprintln!("msg: the conversation view is not implemented yet");
-    eprintln!("     tracked as item 409 — read chat.db, send via Shortcuts");
+    eprintln!("     this build only answers --version and --help");
     ExitCode::FAILURE
 }

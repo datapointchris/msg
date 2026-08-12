@@ -10,9 +10,8 @@ What it is *for* is settled and measured; what it *does* is not written yet.
 
 ## Why it exists twice over
 
-It is a tool worth having, and it is the first repo built to
-`standards/rust.md` — the vehicle for making Rust a first-class stack alongside Go, Python and
-bash rather than the one-off `webviewrs` has been.
+It is a tool worth having, and it is the author's first Rust project built to a full set of
+conventions rather than as a one-off — release shape, lint posture and toolchain pinning included.
 
 ## How it will work
 
@@ -40,8 +39,8 @@ hand-written parser against the published format — is the open decision.
 ## Toolchain
 
 Everything here is generated or standard. `rustfmt.toml`, `.pre-commit-config.yaml`,
-`.github/workflows/validate.yml`, `.editorconfig` and the rest come from `forge` and are not
-hand-edited — change them in `~/tools/forge/pre-commit/` and re-run the die.
+`.github/workflows/validate.yml`, `.editorconfig` and the rest are generated from a shared
+toolchain and are not hand-edited — change them at that source and re-sync.
 
 ```bash
 cargo build            # rust-toolchain.toml pins 1.97.1; rustup fetches it on first use

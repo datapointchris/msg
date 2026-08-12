@@ -4,10 +4,9 @@ Guidance for Claude Code working in this repository.
 
 ## What this is
 
-A terminal iMessage client in Rust, and the first repo built to `standards/rust.md`. Read that file
-before writing code here — it is where the formatting width, the clippy posture, the error-handling
-split, the module layout and the release shape are decided, with the reasoning. Nothing in this
-file restates it.
+A terminal iMessage client in Rust. It follows the author's Rust conventions, which are kept
+outside this repo and are where the formatting width, the clippy posture, the error-handling split,
+the module layout and the release shape are decided. Nothing in this file restates them.
 
 The repo is scaffolded. `src/main.rs` is a clap parser and nothing else: `--version` and `--help`
 work, and a bare invocation reports the conversation view as unimplemented on stderr and exits 1.
@@ -15,9 +14,9 @@ Only what the shape forces is there — no verb grammar, because that is a desig
 than scaffolding.
 
 **There are no tests, deliberately.** There is no logic to test, and a test written against a
-placeholder to turn a line green is the thing `standards/testing.md` exists to stop. The first real
-test arrives with the first real behaviour, and the one worth writing early
-pins the machine contract: stdout carries data and nothing else.
+placeholder only to turn a line green is worse than no test. The first real test arrives with the
+first real behaviour, and the one worth writing early pins the contract that stdout carries data
+and nothing else.
 
 ## The two things most likely to waste your time
 
@@ -30,7 +29,7 @@ both over plain SSH.
 **Do not scrape `hex(attributedBody)` with a regex.** It is the widely-posted answer and it is
 regex over structured data, which breaks on attachments, tapbacks and link previews. 92% of
 messages have no usable `text` column, so this path is not an edge case — it is the main one. How
-to decode it properly is an open decision recorded on the `icb` item, not something to settle
+to decode it properly is an open decision recorded in the project tracker, not something to settle
 inline.
 
 ## Shortcuts gotchas, each paid for once
@@ -47,12 +46,9 @@ inline.
 ## Generated files are not yours to edit
 
 `rustfmt.toml`, `.pre-commit-config.yaml`, `.github/workflows/validate.yml`, `.editorconfig`,
-`.markdownlint.json`, `.markdownlintignore` and `.shellcheckrc` all come from `forge`. Change them
-in `~/tools/forge/pre-commit/` and re-run the die; editing them here is undone on the next sync.
+`.markdownlint.json`, `.markdownlintignore` and `.shellcheckrc` are generated from a shared
+toolchain outside this repo. Change them at that source and re-sync; editing them here is undone on
+the next sync.
 
-`Cargo.toml`'s `version = "0.0.0"` is deliberate. Do not bump it.
-
-## Where the work is tracked
-
-The `imessage gateway and TUI` project in `icb`. That project also carries the Rust-as-a-fleet-stack
-items, so its scope is wider than its name.
+`Cargo.toml`'s `version = "0.0.0"` is deliberate. The tag is the version and CI sets it at build
+time, so do not bump it.
