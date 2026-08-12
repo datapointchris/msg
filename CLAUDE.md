@@ -18,6 +18,24 @@ placeholder only to turn a line green is worse than no test. The first real test
 first real behaviour, and the one worth writing early pins the contract that stdout carries data
 and nothing else.
 
+## Read this before choosing where to put the read path
+
+**The architecture is not settled, and picking wrong is a rewrite rather than a refactor.**
+`imessage-database` is a dependency, but only part of it is reachable depending on which way this
+goes:
+
+| | Needs | Gives |
+| --- | --- | --- |
+| `tables::table::get_connection(path: &Path)` | a **local** `chat.db` file | the rich layer — messages, attachments, reactions, threads, edited messages |
+| `util::streamtyped::parse(Vec<u8>)` | a raw blob, no connection | the `attributedBody` decoder alone |
+
+The verified read channel is `sqlite3 -readonly` **over SSH** against the Mac, which is live and
+returns messages seconds old. That is remote, so it cannot feed `get_connection`. Either the
+database is copied locally and the rich layer is used against a snapshot, or the query stays remote
+and only the blob decoder is used — in which case the schema work is yours.
+
+Decide it before writing the module, not during. It is tracked as its own item.
+
 ## The two things most likely to waste your time
 
 **Do not reach for AppleScript.** It is broken on macOS 15.7.7 in both directions and was verified
@@ -52,3 +70,15 @@ the next sync.
 
 `Cargo.toml`'s `version = "0.0.0"` is deliberate. The tag is the version and CI sets it at build
 time, so do not bump it.
+
+## Two more that read as mistakes and are not
+
+**The licence is GPL-3.0-or-later and was inherited, not chosen.** `imessage-database` is
+GPL-3.0-or-later and this links it, so any other licence would be a false claim. It is reversible
+only by dropping that dependency. Nothing catches GPL from a binary, so the direction to watch is
+outward: anything lifted *out* of this repo into a shared library carries GPL-3 into everything
+linking that library.
+
+**92% of messages have no usable `text` column.** Measured: 759 of 9814 rows. Code that treats
+`text` as the primary source and `attributedBody` as the fallback has it exactly backwards — the
+decode path is the normal path.
