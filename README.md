@@ -82,3 +82,14 @@ sha256sum -c msg-*.sha256 && tar -xzf msg-*.tar.gz
 
 It does not publish to crates.io — the name is taken there by an unrelated XSI message-queue
 binding, and a personal tool gains nothing from the registry but a name to defend.
+
+## Licence
+
+GPL-3.0-or-later, and inherited rather than chosen. Decoding `attributedBody` is the whole read
+path, and the mature parser for it is [`imessage-database`](https://crates.io/crates/imessage-database),
+which is GPL-3.0-or-later. Linking it makes this a derivative work, so any other licence here would
+be a false claim.
+
+The practical effect is small: the source is already public and every release points at a tagged
+commit, which is what the licence asks for. What it does mean is that a fork stays GPL-3, and that
+this cannot return to a permissive licence without dropping that dependency.

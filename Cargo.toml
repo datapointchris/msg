@@ -6,7 +6,11 @@ rust-version = "1.97"
 description = "Terminal iMessage client — reads chat.db over SSH, sends via Shortcuts"
 authors = ["Chris Birch"]
 repository = "https://github.com/datapointchris/msg"
-license = "MIT"
+# GPL-3, not MIT, and not a preference. imessage-database is GPL-3.0-or-later
+# and msg links it, so msg is a derivative work and MIT would be a false claim.
+# Reversible only by dropping that dependency — sole authorship means every other
+# line here could be relicensed at will.
+license = "GPL-3.0-or-later"
 
 # crates.io already has an unrelated `msg` (an XSI message queue binding), and a
 # personal tool gains nothing from the registry but a name to defend. Distribution
@@ -15,6 +19,7 @@ publish = false
 
 [dependencies]
 clap = { version = "4.6.6", features = ["derive"] }
+imessage-database = "4.2.0"
 
 # version stays 0.0.0 in git. CI checks out at the tag and runs `cargo set-version`
 # in the working tree before building, so env!("CARGO_PKG_VERSION") is right in every
