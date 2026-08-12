@@ -54,11 +54,31 @@ version, and CI sets it in the tag-checked-out tree before building.
 
 ## Installing
 
-Not released yet. When it is, it ships as a GitHub release with `cargo-binstall` metadata:
+Every release ships a prebuilt `x86_64-unknown-linux-gnu` tarball and its `.sha256`.
 
 ```bash
-cargo binstall msg
+cargo binstall msg --git https://github.com/datapointchris/msg --version 0.1.0
+```
+
+**The `--version` is not optional, and that is a consequence of the design rather than an
+oversight.** `Cargo.toml` carries `0.0.0` permanently — the tag is the version — and the crate is
+not on crates.io, so `cargo binstall` has nowhere to learn the latest number from. Given it, it
+fetches the release asset; without it, it reads `0.0.0` from the checkout, finds no such release,
+and silently falls back to compiling from source.
+
+To install the newest without looking it up:
+
+```bash
+cargo binstall msg --git https://github.com/datapointchris/msg \
+  --version "$(gh release view --repo datapointchris/msg --json tagName --jq '.tagName[1:]')"
+```
+
+Or take the tarball directly, which needs no cargo at all:
+
+```bash
+gh release download --repo datapointchris/msg --pattern '*.tar.gz*'
+sha256sum -c msg-*.sha256 && tar -xzf msg-*.tar.gz
 ```
 
 It does not publish to crates.io — the name is taken there by an unrelated XSI message-queue
-binding, and a personal tool gains nothing from the registry.
+binding, and a personal tool gains nothing from the registry but a name to defend.
