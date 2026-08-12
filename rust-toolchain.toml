@@ -1,0 +1,9 @@
+# The only pin CI honours. The generated CI block installs no toolchain, so rustup
+# reads this on the first cargo call and fetches exactly it. dtolnay/rust-toolchain
+# does NOT read this file — adding that action would give two pins that disagree.
+#
+# components are required, not decoration: CI runs `cargo fmt` and `cargo clippy`,
+# and a toolchain installed from this file ships neither unless they are named.
+[toolchain]
+channel = "1.97.1"
+components = ["rustfmt", "clippy"]

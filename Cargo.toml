@@ -1,0 +1,24 @@
+[package]
+name = "msg"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.97"
+description = "Terminal iMessage client — reads chat.db over SSH, sends via Shortcuts"
+authors = ["Chris Birch"]
+repository = "https://github.com/datapointchris/msg"
+license = "MIT"
+
+# crates.io already has an unrelated `msg` (an XSI message queue binding), and a
+# personal tool gains nothing from the registry but a name to defend. Distribution
+# is a GitHub release plus the binstall metadata below.
+publish = false
+
+[dependencies]
+
+# version stays 0.0.0 in git. CI checks out at the tag and runs `cargo set-version`
+# in the working tree before building, so env!("CARGO_PKG_VERSION") is right in every
+# released binary and nothing is committed back to main.
+[package.metadata.binstall]
+pkg-url = "{ repo }/releases/download/v{ version }/{ name }-{ version }-{ target }.tar.gz"
+pkg-fmt = "tgz"
+bin-dir = "{ name }"
