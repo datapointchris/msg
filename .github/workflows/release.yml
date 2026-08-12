@@ -1,0 +1,67 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    uses: ./.github/workflows/validate.yml
+
+  semver:
+    needs: validate
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.semrel.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      # No changelog-file. The release notes are the changelog.
+      # allow-initial-development-versions keeps the major at 0 — without it a
+      # bare fix: ships 1.0.0 on the first automated release, which three repos
+      # have already done by accident.
+      - uses: go-semantic-release/action@v1
+        id: semrel
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          allow-initial-development-versions: true
+
+  build:
+    needs: semver
+    if: needs.semver.outputs.version != ''
+    runs-on: ubuntu-latest
+    env:
+      VERSION: ${{ needs.semver.outputs.version }}
+      TARGET: x86_64-unknown-linux-gnu
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: v${{ needs.semver.outputs.version }}
+
+      # No toolchain action. rust-toolchain.toml is the pin and rustup reads it
+      # on the first cargo call; dtolnay/rust-toolchain does not read that file,
+      # so adding it would give two pins that disagree.
+      - uses: Swatinem/rust-cache@v2
+
+      # Cargo.toml holds 0.0.0 in git. This sets the real version in the
+      # tag-checked-out working tree and is never committed back.
+      - run: cargo install cargo-edit --locked
+      - run: cargo set-version "$VERSION"
+
+      - run: cargo build --release --locked --target "$TARGET"
+
+      - name: package
+        run: |
+          mkdir -p dist
+          tar -C "target/${TARGET}/release" -czf "dist/msg-${VERSION}-${TARGET}.tar.gz" msg
+          (cd dist && sha256sum "msg-${VERSION}-${TARGET}.tar.gz" > "msg-${VERSION}-${TARGET}.tar.gz.sha256")
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ needs.semver.outputs.version }}
+          files: dist/*
