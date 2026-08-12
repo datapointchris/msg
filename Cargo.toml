@@ -14,6 +14,7 @@ license = "MIT"
 publish = false
 
 [dependencies]
+clap = { version = "4.6.6", features = ["derive"] }
 
 # version stays 0.0.0 in git. CI checks out at the tag and runs `cargo set-version`
 # in the working tree before building, so env!("CARGO_PKG_VERSION") is right in every

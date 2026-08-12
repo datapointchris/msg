@@ -9,7 +9,15 @@ before writing code here — it is where the formatting width, the clippy postur
 split, the module layout and the release shape are decided, with the reasoning. Nothing in this
 file restates it.
 
-The repo is scaffolded and empty. `src/main.rs` is still cargo's hello world.
+The repo is scaffolded. `src/main.rs` is a clap parser and nothing else: `--version` and `--help`
+work, and a bare invocation reports the conversation view as unimplemented on stderr and exits 1.
+Only what the shape forces is there — no verb grammar, because that is a design decision rather
+than scaffolding.
+
+**There are no tests, deliberately.** There is no logic to test, and a test written against a
+placeholder to turn a line green is the thing `standards/testing.md` exists to stop. The first real
+test arrives with the first real behaviour, and the one worth writing early
+pins the machine contract: stdout carries data and nothing else.
 
 ## The two things most likely to waste your time
 

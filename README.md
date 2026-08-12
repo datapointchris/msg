@@ -4,8 +4,9 @@ Terminal iMessage client. Reads `chat.db` on a Mac over SSH, sends through Short
 the result as a TUI laid out like Messages — conversation list on the left, thread on the right,
 type to send. Runs from a Linux terminal against a Mac that stays on.
 
-**Scaffolded, not built.** The repo currently holds the toolchain and nothing else. What it is
-*for* is settled and measured; what it *does* is not written yet.
+**Scaffolded, not built.** There is a binary and it parses arguments, but the conversation view is
+not written — running `msg` reports that and exits non-zero rather than opening an empty window.
+What it is *for* is settled and measured; what it *does* is not written yet.
 
 ## Why it exists twice over
 
