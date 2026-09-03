@@ -1,4 +1,4 @@
-# The only pin CI honours. The generated CI block installs no toolchain, so rustup
+# The only pin CI honors. The generated CI block installs no toolchain, so rustup
 # reads this on the first cargo call and fetches exactly it. dtolnay/rust-toolchain
 # does NOT read this file — adding that action would give two pins that disagree.
 #

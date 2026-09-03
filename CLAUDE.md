@@ -15,7 +15,7 @@ than scaffolding.
 
 **There are no tests, deliberately.** There is no logic to test, and a test written against a
 placeholder only to turn a line green is worse than no test. The first real test arrives with the
-first real behaviour, and the one worth writing early pins the contract that stdout carries data
+first real behavior, and the one worth writing early pins the contract that stdout carries data
 and nothing else.
 
 ## Read this before choosing where to put the read path
@@ -73,8 +73,8 @@ time, so do not bump it.
 
 ## Two more that read as mistakes and are not
 
-**The licence is GPL-3.0-or-later and was inherited, not chosen.** `imessage-database` is
-GPL-3.0-or-later and this links it, so any other licence would be a false claim. It is reversible
+**The license is GPL-3.0-or-later and was inherited, not chosen.** `imessage-database` is
+GPL-3.0-or-later and this links it, so any other license would be a false claim. It is reversible
 only by dropping that dependency. Nothing catches GPL from a binary, so the direction to watch is
 outward: anything lifted *out* of this repo into a shared library carries GPL-3 into everything
 linking that library.
