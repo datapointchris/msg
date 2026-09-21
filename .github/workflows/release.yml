@@ -4,12 +4,14 @@ on:
   push:
     branches: [main]
 
+# Scoped per job rather than here: validate only reads, and it is the job that
+# runs the most third-party code.
 permissions:
-  contents: write
+  contents: read
 
-# Two pushes to main inside one run's window would otherwise race, and the later
-# run fails pushing its version bump onto a ref that has already moved.
-# Never cancel-in-progress: a canceled release can leave a tag with no release.
+# Two pushes to main inside one run's window would otherwise race to cut the
+# same version. Never cancel-in-progress: a canceled release can leave a tag
+# with no release.
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
@@ -18,37 +20,29 @@ jobs:
   validate:
     uses: ./.github/workflows/validate.yml
 
-  semver:
+  release:
     needs: validate
-    runs-on: ubuntu-latest
-    outputs:
-      version: ${{ steps.semrel.outputs.version }}
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
-
-      # No changelog-file. The release notes are the changelog.
-      # allow-initial-development-versions keeps the major at 0 — without it a
-      # bare fix: ships 1.0.0 on the first automated release, which three repos
-      # have already done by accident.
-      - uses: go-semantic-release/action@v1
-        id: semrel
-        with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          allow-initial-development-versions: true
+    uses: datapointchris/reusable-workflows/.github/workflows/go-semantic-release.yml@v1
+    permissions:
+      contents: write
+    with:
+      # Keeps this on 0.x. Without it go-semantic-release forces a major bump on
+      # any change while the major is 0, so the next `fix:` would ship 1.0.0.
+      allow-initial-development-versions: true
 
   build:
-    needs: semver
-    if: needs.semver.outputs.version != ''
+    needs: release
+    if: needs.release.outputs.version != ''
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     env:
-      VERSION: ${{ needs.semver.outputs.version }}
+      VERSION: ${{ needs.release.outputs.version }}
       TARGET: x86_64-unknown-linux-gnu
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: v${{ needs.semver.outputs.version }}
+          ref: v${{ needs.release.outputs.version }}
 
       # No toolchain action. rust-toolchain.toml is the pin and rustup reads it
       # on the first cargo call; dtolnay/rust-toolchain does not read that file,
@@ -70,5 +64,5 @@ jobs:
 
       - uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ needs.semver.outputs.version }}
+          tag_name: v${{ needs.release.outputs.version }}
           files: dist/*
