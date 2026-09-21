@@ -47,7 +47,7 @@ jobs:
       # No toolchain action. rust-toolchain.toml is the pin and rustup reads it
       # on the first cargo call; dtolnay/rust-toolchain does not read that file,
       # so adding it would give two pins that disagree.
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2.9.2
 
       # Cargo.toml holds 0.0.0 in git. This sets the real version in the
       # tag-checked-out working tree and is never committed back.
@@ -62,7 +62,7 @@ jobs:
           tar -C "target/${TARGET}/release" -czf "dist/msg-${VERSION}-${TARGET}.tar.gz" msg
           (cd dist && sha256sum "msg-${VERSION}-${TARGET}.tar.gz" > "msg-${VERSION}-${TARGET}.tar.gz.sha256")
 
-      - uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65 # v2.6.2
         with:
           tag_name: v${{ needs.release.outputs.version }}
           files: dist/*
