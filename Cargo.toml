@@ -18,8 +18,11 @@ license = "GPL-3.0-or-later"
 publish = false
 
 [dependencies]
+anyhow = "1"
 clap = { version = "4.6.6", features = ["derive"] }
 imessage-database = "4.2.0"
+ratatui = "0.30"
+unicode-width = "0.2"
 
 # version stays 0.0.0 in git. CI checks out at the tag and runs `cargo set-version`
 # in the working tree before building, so env!("CARGO_PKG_VERSION") is right in every

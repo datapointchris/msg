@@ -1,0 +1,3 @@
+[codespell]
+# ratatui is the TUI crate this binary is built on, not a misspelling.
+ignore-words-list = ratatui
