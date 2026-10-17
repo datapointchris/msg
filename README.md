@@ -4,9 +4,23 @@ Terminal iMessage client. Reads `chat.db` on a Mac over SSH, sends through Short
 the result as a TUI laid out like Messages — conversation list on the left, thread on the right,
 type to send. Runs from a Linux terminal against a Mac that stays on.
 
-**Scaffolded, not built.** There is a binary and it parses arguments, but the conversation view is
-not written — running `msg` reports that and exits non-zero rather than opening an empty window.
-What it is *for* is settled and measured; what it *does* is not written yet.
+**The view works, the channels are not wired.** Running `msg` opens the conversation view against
+built-in sample conversations. It reads nothing from the Mac and sends nothing. What it is *for* is
+settled and measured; reading and sending are not written yet.
+
+| Key | In the list | In a conversation |
+| --- | --- | --- |
+| `Tab` | move to the conversation | move to the list |
+| `↑` `↓` | pick a conversation (`k` `j` too) | scroll the thread one row |
+| `PgUp` `PgDn` | | scroll the thread one page |
+| `Home` `End` | | oldest and newest message |
+| `Enter` | open the conversation | nothing yet, there is no send |
+| `Esc` | quit | back to the list |
+| `q` | quit | types `q` |
+| `Ctrl-C` | quit | quit |
+
+Anything else typed in a conversation goes into its composition line, and each conversation keeps
+its own draft.
 
 ## Why it exists twice over
 

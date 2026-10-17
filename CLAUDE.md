@@ -8,15 +8,26 @@ A terminal iMessage client in Rust. It follows the author's Rust conventions, wh
 outside this repo and are where the formatting width, the clippy posture, the error-handling split,
 the module layout and the release shape are decided. Nothing in this file restates them.
 
-The repo is scaffolded. `src/main.rs` is a clap parser and nothing else: `--version` and `--help`
-work, and a bare invocation reports the conversation view as unimplemented on stderr and exits 1.
-Only what the shape forces is there — no verb grammar, because that is a design decision rather
-than scaffolding.
+A bare invocation opens the conversation view, a ratatui TUI, against hand-made conversations in
+`src/fixture.rs`. It reads nothing from disk and sends nothing. There is no verb grammar yet,
+because that is a design decision rather than scaffolding.
 
-**There are no tests, deliberately.** There is no logic to test, and a test written against a
-placeholder only to turn a line green is worse than no test. The first real test arrives with the
-first real behavior, and the one worth writing early pins the contract that stdout carries data
-and nothing else.
+The view is split so the data source can be swapped without touching rendering:
+
+| File | Holds |
+| --- | --- |
+| `src/fixture.rs` | the `Conversation` and `Message` types the read path will produce, and the sample data |
+| `src/app.rs` | the state, and what each key does to it |
+| `src/thread.rs` | wrapping a thread into rows and choosing which rows are in view |
+| `src/ui.rs` | drawing one frame from the state |
+
+**A thread scrolls in rendered rows.** `thread::layout` wraps every message at the pane's width and
+the pane draws those rows unwrapped, so the offset scrolled and the rows drawn are one count. Do
+not hand the thread to a wrapping `Paragraph` and scroll that: its row count is not available on
+stable ratatui, so the scroll offset would have nothing to be clamped against.
+
+**Tests assert the values a frame is built from**, the rows, the window and the key handling, never
+a rendered buffer. The width belongs to whoever runs it.
 
 ## Read this before choosing where to put the read path
 
