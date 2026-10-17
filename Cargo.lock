@@ -987,6 +987,8 @@ dependencies = [
  "clap",
  "imessage-database",
  "ratatui",
+ "rustix",
+ "unicode-segmentation",
  "unicode-width",
 ]
 

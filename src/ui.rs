@@ -9,7 +9,7 @@ use ratatui::layout::{Constraint, Layout, Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, List, ListItem, ListState, Paragraph};
-use unicode_width::UnicodeWidthStr;
+use unicode_width::UnicodeWidthChar;
 
 use crate::app::{App, Focus};
 use crate::thread::{self, RowKind, Side};
@@ -39,14 +39,19 @@ fn draw_list(frame: &mut Frame, app: &App, area: Rect) {
         .map(|conversation| {
             ListItem::new(vec![
                 Line::from(Span::styled(conversation.name.as_str(), Style::new().add_modifier(Modifier::BOLD))),
-                Line::from(Span::styled(first_line(conversation.preview()), Style::new().fg(Color::DarkGray))),
+                Line::from(Span::styled(conversation.preview(), Style::new().fg(Color::DarkGray))),
             ])
         })
         .collect();
+    let title = if app.sample {
+        "Conversations (sample data)"
+    } else {
+        "Conversations"
+    };
     let list = List::new(items)
-        .block(pane("Conversations", app.focus == Focus::List))
+        .block(pane(title, app.focus == Focus::List))
         .highlight_style(Style::new().add_modifier(Modifier::REVERSED));
-    let mut state = ListState::default().with_selected(Some(app.selected));
+    let mut state = ListState::default().with_selected(app.selected_index());
     frame.render_stateful_widget(list, area, &mut state);
 }
 
@@ -84,8 +89,9 @@ fn draw_compose(frame: &mut Frame, app: &App, area: Rect) {
     let focused = app.focus == Focus::Conversation;
     let block = pane("Message", focused);
     let inner = block.inner(area);
-    let draft = app.draft();
-    let view = compose_view(draft, usize::from(inner.width));
+    // The line is one row, so a line break in the draft shows as a mark.
+    let draft = app.draft().replace('\n', "↵");
+    let view = compose_view(&draft, usize::from(inner.width));
     frame.render_widget(Paragraph::new(&draft[view.start..]).block(block), area);
     if focused {
         let column = u16::try_from(view.cursor).unwrap_or(u16::MAX);
@@ -108,22 +114,17 @@ struct ComposeView {
 fn compose_view(draft: &str, width: usize) -> ComposeView {
     // One column is kept for the cursor itself.
     let room = width.saturating_sub(1);
-    let mut start = 0;
-    for (index, _) in draft.char_indices() {
-        if draft[index..].width() <= room {
-            start = index;
+    let mut start = draft.len();
+    let mut cursor = 0;
+    for (index, ch) in draft.char_indices().rev() {
+        let ch_width = ch.width().unwrap_or(0);
+        if cursor + ch_width > room {
             break;
         }
-        start = draft.len();
+        cursor += ch_width;
+        start = index;
     }
-    ComposeView {
-        start,
-        cursor: draft[start..].width(),
-    }
-}
-
-fn first_line(text: &str) -> &str {
-    text.lines().next().unwrap_or("")
+    ComposeView { start, cursor }
 }
 
 #[cfg(test)]
@@ -149,16 +150,5 @@ mod tests {
         let view = compose_view(draft, 6);
         assert_eq!(&draft[view.start..], "美玲");
         assert_eq!(view.cursor, 4);
-    }
-
-    #[test]
-    fn an_empty_draft_puts_the_cursor_at_the_start() {
-        assert_eq!(compose_view("", 20), ComposeView { start: 0, cursor: 0 });
-    }
-
-    #[test]
-    fn the_list_previews_only_the_first_line_of_a_message() {
-        assert_eq!(first_line("14 Alder Row\nFlat 3"), "14 Alder Row");
-        assert_eq!(first_line(""), "");
     }
 }

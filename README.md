@@ -20,7 +20,7 @@ settled and measured; reading and sending are not written yet.
 | `Ctrl-C` | quit | quit |
 
 Anything else typed in a conversation goes into its composition line, and each conversation keeps
-its own draft.
+its own draft. A paste lands in the draft whole, line breaks included, and never runs as keys.
 
 ## Why it exists twice over
 

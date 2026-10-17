@@ -1,43 +1,13 @@
-//! Hand-made conversations the view renders until the chat.db read path exists.
+//! Hand-made conversations for the view, covering each shape it branches on.
+//! Every name and number here is invented.
 //!
-//! The types are the boundary between data and rendering: the read path will
-//! produce these same structs, and nothing in the view knows where they came
-//! from. Every name and number here is invented.
-//!
-//! The set is chosen for the shapes the view branches on rather than for
-//! realism: a thread long enough to scroll, a paragraph wider than any pane, a
-//! word with no break point, an explicit line break, wide characters, a group
-//! with consecutive messages from one sender, a contact known only by number,
-//! a single message, and a conversation with none.
+//! The set is chosen for those shapes rather than for realism: a thread long
+//! enough to scroll, a paragraph wider than any pane, a word with no break
+//! point, an explicit line break, wide characters, a group with consecutive
+//! messages from one sender, a contact known only by number, a single message,
+//! and a conversation with none.
 
-/// Who wrote a message.
-#[derive(Debug, Clone, PartialEq, Eq)]
-pub enum Sender {
-    Me,
-    Them(String),
-}
-
-#[derive(Debug, Clone)]
-pub struct Message {
-    pub from: Sender,
-    pub text: String,
-}
-
-#[derive(Debug, Clone)]
-pub struct Conversation {
-    pub name: String,
-    /// A group thread names each sender above their messages; a one-to-one
-    /// thread does not, because the conversation's name already says who.
-    pub group: bool,
-    pub messages: Vec<Message>,
-}
-
-impl Conversation {
-    /// The newest message's text, for the conversation list.
-    pub fn preview(&self) -> &str {
-        self.messages.last().map_or("", |message| message.text.as_str())
-    }
-}
+use crate::conversation::{Conversation, Message, Sender};
 
 fn me(text: &str) -> Message {
     Message {
@@ -55,6 +25,7 @@ fn them(name: &str, text: &str) -> Message {
 
 fn one_to_one(name: &str, messages: Vec<Message>) -> Conversation {
     Conversation {
+        id: name.to_owned(),
         name: name.to_owned(),
         group: false,
         messages,
@@ -107,6 +78,7 @@ pub fn conversations() -> Vec<Conversation> {
             ],
         ),
         Conversation {
+            id: "Climbing".to_owned(),
             name: "Climbing".to_owned(),
             group: true,
             messages: vec![

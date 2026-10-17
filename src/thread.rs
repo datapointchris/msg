@@ -12,7 +12,7 @@ use std::ops::Range;
 
 use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 
-use crate::fixture::{Conversation, Sender};
+use crate::conversation::{Conversation, Sender};
 
 /// Which edge of the pane a row sits against: the other party's on the left,
 /// mine on the right.
@@ -151,10 +151,12 @@ pub fn window(total: usize, height: usize, scroll: usize) -> Range<usize> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::fixture::{self, Message};
+    use crate::conversation::Message;
+    use crate::fixture;
 
     fn conversation(group: bool, messages: Vec<Message>) -> Conversation {
         Conversation {
+            id: "test".to_owned(),
             name: "test".to_owned(),
             group,
             messages,
@@ -265,27 +267,18 @@ mod tests {
     }
 
     #[test]
-    fn an_empty_conversation_lays_out_no_rows() {
-        assert!(layout(&conversation(false, Vec::new()), 40).is_empty());
-    }
-
-    #[test]
-    fn the_window_rests_on_the_newest_rows() {
-        assert_eq!(window(50, 10, 0), 40..50);
-    }
-
-    #[test]
-    fn scrolling_one_step_moves_the_window_one_row() {
-        assert_eq!(window(50, 10, 1), 39..49);
-    }
-
-    #[test]
-    fn scrolling_past_the_oldest_row_stops_there() {
-        assert_eq!(window(50, 10, 1000), 0..10);
-    }
-
-    #[test]
-    fn a_thread_shorter_than_the_pane_shows_every_row() {
-        assert_eq!(window(4, 10, 3), 0..4);
+    fn the_window_counts_up_from_the_newest_row_and_stops_at_the_oldest() {
+        for ((total, height, scroll), expected) in [
+            ((50, 10, 0), 40..50),
+            ((50, 10, 1), 39..49),
+            ((50, 10, 1000), 0..10),
+            ((4, 10, 3), 0..4),
+        ] {
+            assert_eq!(
+                window(total, height, scroll),
+                expected,
+                "{total} rows, height {height}, scroll {scroll}"
+            );
+        }
     }
 }

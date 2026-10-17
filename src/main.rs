@@ -1,4 +1,5 @@
 mod app;
+mod conversation;
 mod fixture;
 mod thread;
 mod ui;
@@ -8,7 +9,8 @@ use std::io::{self, IsTerminal};
 use anyhow::{Context, bail};
 use clap::Parser;
 use ratatui::DefaultTerminal;
-use ratatui::crossterm::event::{self, Event};
+use ratatui::crossterm::event::{self, DisableBracketedPaste, EnableBracketedPaste, Event};
+use ratatui::crossterm::execute;
 
 use crate::app::App;
 
@@ -29,21 +31,40 @@ fn main() -> anyhow::Result<()> {
         bail!("the conversation view needs a terminal on stdout");
     }
 
-    // The view shows built-in sample conversations until the chat.db read path
-    // exists. Nothing is read from disk and nothing is sent.
-    let mut app = App::new(fixture::conversations());
+    // Sample conversations: nothing is read from disk and nothing is sent.
+    let mut app = App::new(fixture::conversations(), true);
 
     let mut terminal = ratatui::try_init().context("opening the terminal")?;
-    let result = run(&mut terminal, &mut app);
+    // Without bracketed paste a paste arrives one key at a time, so a pasted
+    // tab moves focus and the text after it runs as list keys, `q` included.
+    let result = execute!(io::stdout(), EnableBracketedPaste)
+        .context("enabling bracketed paste")
+        .and_then(|()| {
+            disable_paste_on_panic();
+            run(&mut terminal, &mut app).context("running the conversation view")
+        });
+    let _ = execute!(io::stdout(), DisableBracketedPaste);
     ratatui::restore();
-    result.context("running the conversation view")
+    result
+}
+
+/// Chains in front of the hook `try_init` installed, which restores the rest of
+/// the terminal.
+fn disable_paste_on_panic() {
+    let restore = std::panic::take_hook();
+    std::panic::set_hook(Box::new(move |info| {
+        let _ = execute!(io::stdout(), DisableBracketedPaste);
+        restore(info);
+    }));
 }
 
 fn run(terminal: &mut DefaultTerminal, app: &mut App) -> io::Result<()> {
     while !app.quit {
         terminal.draw(|frame| ui::draw(frame, app))?;
-        if let Event::Key(key) = event::read()? {
-            app.handle_key(key);
+        match event::read()? {
+            Event::Key(key) => app.handle_key(key),
+            Event::Paste(text) => app.paste(&text),
+            _ => {}
         }
     }
     Ok(())

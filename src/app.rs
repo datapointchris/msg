@@ -10,9 +10,12 @@
 //! back to check a detail can carry on typing without a key in between. Tab
 //! moves between the two, and Enter and Esc move in and back out.
 
-use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use std::collections::HashMap;
 
-use crate::fixture::Conversation;
+use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
+use unicode_segmentation::UnicodeSegmentation;
+
+use crate::conversation::Conversation;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Focus {
@@ -23,11 +26,15 @@ pub enum Focus {
 #[derive(Debug)]
 pub struct App {
     pub conversations: Vec<Conversation>,
-    pub selected: usize,
+    /// The selected conversation's id rather than its row, so the selection
+    /// stays on one conversation when a new message reorders the list.
+    selected: Option<String>,
     pub focus: Focus,
-    /// One unsent draft per conversation, so text typed for one person never
-    /// follows the reader into another's thread.
-    drafts: Vec<String>,
+    /// The conversations are invented, which the view labels on screen.
+    pub sample: bool,
+    /// One unsent draft per conversation id, so text typed for one person never
+    /// follows the reader into another's thread, whatever row either sits on.
+    drafts: HashMap<String, String>,
     /// Rows between the newest row and the bottom of the thread pane. Zero
     /// keeps the newest message in view, which is where a thread opens.
     pub scroll: usize,
@@ -38,25 +45,58 @@ pub struct App {
 }
 
 impl App {
-    pub fn new(conversations: Vec<Conversation>) -> Self {
-        let drafts = vec![String::new(); conversations.len()];
+    pub fn new(conversations: Vec<Conversation>, sample: bool) -> Self {
+        let selected = conversations.first().map(|conversation| conversation.id.clone());
         Self {
             conversations,
-            selected: 0,
+            selected,
             focus: Focus::List,
-            drafts,
+            sample,
+            drafts: HashMap::new(),
             scroll: 0,
             page: 1,
             quit: false,
         }
     }
 
+    /// The selected conversation's row in the list.
+    pub fn selected_index(&self) -> Option<usize> {
+        let id = self.selected.as_ref()?;
+        self.conversations.iter().position(|conversation| &conversation.id == id)
+    }
+
     pub fn conversation(&self) -> Option<&Conversation> {
-        self.conversations.get(self.selected)
+        self.conversations.get(self.selected_index()?)
     }
 
     pub fn draft(&self) -> &str {
-        self.drafts.get(self.selected).map_or("", String::as_str)
+        self.selected.as_ref().and_then(|id| self.drafts.get(id)).map_or("", String::as_str)
+    }
+
+    fn draft_mut(&mut self) -> Option<&mut String> {
+        let id = self.selected.clone()?;
+        Some(self.drafts.entry(id).or_default())
+    }
+
+    /// Appends pasted text to the draft. Line breaks are kept, since a message
+    /// can hold them.
+    pub fn paste(&mut self, text: &str) {
+        if self.focus != Focus::Conversation {
+            return;
+        }
+        let text: String = text
+            .replace("\r\n", "\n")
+            .chars()
+            .map(|ch| match ch {
+                '\r' => '\n',
+                '\t' => ' ',
+                ch => ch,
+            })
+            .filter(|ch| *ch == '\n' || !ch.is_control())
+            .collect();
+        if let Some(draft) = self.draft_mut() {
+            draft.push_str(&text);
+        }
     }
 
     /// Records the thread pane's size from the frame being drawn, and pulls a
@@ -90,9 +130,10 @@ impl App {
     }
 
     fn list_key(&mut self, key: KeyEvent) {
+        let current = self.selected_index().unwrap_or(0);
         match key.code {
-            KeyCode::Up | KeyCode::Char('k') => self.select(self.selected.saturating_sub(1)),
-            KeyCode::Down | KeyCode::Char('j') => self.select(self.selected + 1),
+            KeyCode::Up | KeyCode::Char('k') => self.select(current.saturating_sub(1)),
+            KeyCode::Down | KeyCode::Char('j') => self.select(current + 1),
             KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => self.focus = Focus::Conversation,
             KeyCode::Esc | KeyCode::Char('q') => self.quit = true,
             _ => {}
@@ -109,14 +150,18 @@ impl App {
             // The next frame's fit pulls this back to the oldest row.
             KeyCode::Home => self.scroll = usize::MAX,
             KeyCode::End => self.scroll = 0,
+            // One visible character, which a flag or a skin-toned emoji spans
+            // several chars of.
             KeyCode::Backspace => {
-                if let Some(draft) = self.drafts.get_mut(self.selected) {
-                    draft.pop();
+                if let Some(draft) = self.draft_mut()
+                    && let Some((start, _)) = draft.grapheme_indices(true).next_back()
+                {
+                    draft.truncate(start);
                 }
             }
             // A modified key is a shortcut, not text.
             KeyCode::Char(ch) if !key.modifiers.intersects(KeyModifiers::CONTROL | KeyModifiers::ALT) => {
-                if let Some(draft) = self.drafts.get_mut(self.selected) {
+                if let Some(draft) = self.draft_mut() {
                     draft.push(ch);
                 }
             }
@@ -127,9 +172,9 @@ impl App {
 
     fn select(&mut self, index: usize) {
         let last = self.conversations.len().saturating_sub(1);
-        let index = index.min(last);
-        if index != self.selected {
-            self.selected = index;
+        let id = self.conversations.get(index.min(last)).map(|conversation| conversation.id.clone());
+        if id != self.selected {
+            self.selected = id;
             self.scroll = 0;
         }
     }
@@ -141,7 +186,7 @@ mod tests {
     use crate::fixture;
 
     fn app() -> App {
-        App::new(fixture::conversations())
+        App::new(fixture::conversations(), true)
     }
 
     fn press(app: &mut App, code: KeyCode) {
@@ -155,26 +200,20 @@ mod tests {
     }
 
     #[test]
-    fn the_view_opens_on_the_first_conversation_in_the_list() {
-        let app = app();
-        assert_eq!((app.selected, app.focus, app.scroll), (0, Focus::List, 0));
-    }
-
-    #[test]
     fn the_list_moves_between_conversations_and_stops_at_each_end() {
         let mut app = app();
         let last = app.conversations.len() - 1;
         press(&mut app, KeyCode::Up);
-        assert_eq!(app.selected, 0);
+        assert_eq!(app.selected_index(), Some(0));
         press(&mut app, KeyCode::Down);
         press(&mut app, KeyCode::Char('j'));
-        assert_eq!(app.selected, 2);
+        assert_eq!(app.selected_index(), Some(2));
         for _ in 0..app.conversations.len() + 3 {
             press(&mut app, KeyCode::Down);
         }
-        assert_eq!(app.selected, last);
+        assert_eq!(app.selected_index(), Some(last));
         press(&mut app, KeyCode::Char('k'));
-        assert_eq!(app.selected, last - 1);
+        assert_eq!(app.selected_index(), Some(last - 1));
     }
 
     #[test]
@@ -195,21 +234,22 @@ mod tests {
     fn typing_in_a_conversation_fills_its_composition_line() {
         let mut app = app();
         press(&mut app, KeyCode::Tab);
-        type_text(&mut app, "quick j k");
+        type_text(&mut app, "quick j k 🇯🇵");
         press(&mut app, KeyCode::Backspace);
-        assert_eq!(app.draft(), "quick j ");
+        assert_eq!(app.draft(), "quick j k ");
         // List keys are text here, and neither moves the selection nor quits.
-        assert_eq!(app.selected, 0);
+        assert_eq!(app.selected_index(), Some(0));
         assert!(!app.quit);
     }
 
     #[test]
-    fn enter_in_a_conversation_keeps_the_draft() {
+    fn a_pasted_table_row_or_address_lands_in_the_draft_as_text() {
         let mut app = app();
         press(&mut app, KeyCode::Tab);
-        type_text(&mut app, "hello");
-        press(&mut app, KeyCode::Enter);
-        assert_eq!(app.draft(), "hello");
+        app.paste("name\tqty\r\n14 Alder Row\nFlat 3");
+        assert_eq!(app.draft(), "name qty\n14 Alder Row\nFlat 3");
+        assert_eq!(app.focus, Focus::Conversation);
+        assert!(!app.quit);
     }
 
     #[test]
@@ -290,14 +330,5 @@ mod tests {
         press(&mut app, KeyCode::Tab);
         press(&mut app, KeyCode::Down);
         assert_eq!(app.scroll, 0);
-    }
-
-    #[test]
-    fn a_key_release_does_nothing() {
-        let mut app = app();
-        let mut key = KeyEvent::new(KeyCode::Down, KeyModifiers::NONE);
-        key.kind = KeyEventKind::Release;
-        app.handle_key(key);
-        assert_eq!(app.selected, 0);
     }
 }

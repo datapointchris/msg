@@ -16,7 +16,8 @@ The view is split so the data source can be swapped without touching rendering:
 
 | File | Holds |
 | --- | --- |
-| `src/fixture.rs` | the `Conversation` and `Message` types the read path will produce, and the sample data |
+| `src/conversation.rs` | the `Conversation` and `Message` types the view renders, whatever their source |
+| `src/fixture.rs` | the sample data |
 | `src/app.rs` | the state, and what each key does to it |
 | `src/thread.rs` | wrapping a thread into rows and choosing which rows are in view |
 | `src/ui.rs` | drawing one frame from the state |
