@@ -75,9 +75,9 @@ inline.
 
 ## Generated files are not yours to edit
 
-`rustfmt.toml`, `.pre-commit-config.yaml`, `.github/workflows/validate.yml`, `.editorconfig`,
-`.markdownlint.json`, `.markdownlintignore` and `.shellcheckrc` are generated from a shared
-toolchain outside this repo. Change them at that source and re-sync; editing them here is undone on
+`rustfmt.toml`, `rust-toolchain.toml`, `.pre-commit-config.yaml`,
+`.github/workflows/validate.yml`, `.editorconfig`, `.markdownlint.yaml` and `.shellcheckrc` are
+generated from a shared toolchain outside this repo. Change them at that source and re-sync; editing them here is undone on
 the next sync.
 
 `Cargo.toml`'s `version = "0.0.0"` is deliberate. The tag is the version and CI sets it at build
