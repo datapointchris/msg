@@ -14,12 +14,8 @@ use ratatui::crossterm::execute;
 
 use crate::app::App;
 
-/// Terminal iMessage client.
-///
-/// Reads chat.db on a Mac over SSH and sends through Shortcuts. Running it with
-/// no arguments opens the conversation view.
 #[derive(Parser, Debug)]
-#[command(name = "msg", version, about, long_about = None)]
+#[command(name = "msg", version, about)]
 struct Cli {}
 
 fn main() -> anyhow::Result<()> {
