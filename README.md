@@ -1,11 +1,11 @@
 # msg
 
-A terminal iMessage client, for a Linux terminal and a Mac that stays on. It reads the Mac's
-`chat.db` over SSH and sends through Shortcuts. The screen is laid out like Messages: the
+A terminal iMessage client, for a Linux terminal and a Mac that stays on. It is designed to read
+the Mac's `chat.db` over SSH and send through Shortcuts. The screen is laid out like Messages: the
 conversation list on the left, the thread on the right, and a composition line under the thread.
 
 msg is a client of Messages on the Mac, not a replacement for it. The Mac keeps the iMessage
-account and does the sending. msg reads its database and asks it to send.
+account and does the sending. msg's part is reading the Messages database and asking the Mac to send.
 
 **The view works, and the channels are not wired.** Running `msg` opens the conversation view on
 built-in sample conversations. It reads nothing from the Mac and sends nothing. What it is *for* is

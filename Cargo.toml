@@ -3,7 +3,7 @@ name = "msg"
 version = "0.0.0"
 edition = "2024"
 rust-version = "1.97"
-description = "Terminal iMessage client — reads chat.db over SSH, sends via Shortcuts"
+description = "Terminal iMessage client, showing built-in sample conversations"
 authors = ["Chris Birch"]
 repository = "https://github.com/datapointchris/msg"
 # GPL-3, not MIT, and not a preference. imessage-database is GPL-3.0-or-later
