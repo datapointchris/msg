@@ -122,11 +122,15 @@ is a snapshot.
 ## Building from source — the tag is the version, so a source build says 0.0.0
 
 ```bash
-cargo build    # rust-toolchain.toml pins the release; rustup fetches it on first use
-cargo test
-cargo clippy --all-targets --all-features -- -D warnings
-cargo fmt
+task setup     # rust-toolchain.toml pins the release; rustup fetches it on first use
+task build
+task test
+task lint      # clippy with -D warnings, and cargo fmt --check
+task format    # cargo fmt
+task install   # a release build into ~/.local/bin
 ```
+
+`task --list` shows every task beside what it runs.
 
 `Cargo.toml` carries `version = "0.0.0"` deliberately, and it is never bumped in git. The release
 build checks out the tag and sets the version in that working tree before building. Only a released

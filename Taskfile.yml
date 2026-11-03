@@ -1,0 +1,44 @@
+version: "3"
+
+vars:
+  INSTALL_DIR: "{{.HOME}}/.local/bin"
+
+tasks:
+  default:
+    desc: List the tasks
+    silent: true
+    cmds:
+      - task --list
+
+  setup:
+    desc: Fetch the toolchain and every dependency a fresh checkout needs
+    cmds:
+      - cargo fetch --locked
+
+  build:
+    desc: Build every target into target/
+    cmds:
+      - cargo build --all-targets
+
+  test:
+    desc: Run every test
+    cmds:
+      - cargo test
+
+  lint:
+    desc: Run clippy with warnings as errors and check formatting, writing no file
+    cmds:
+      - cargo clippy --all-targets --all-features -- -D warnings
+      - cargo fmt --check
+
+  format:
+    desc: Rewrite the sources with rustfmt
+    cmds:
+      - cargo fmt
+
+  install:
+    desc: Install a release build of msg where the released binary lives
+    cmds:
+      - cargo build --release --locked
+      - mkdir -p "{{.INSTALL_DIR}}"
+      - install -m 0755 target/release/msg "{{.INSTALL_DIR}}/msg"
