@@ -38,11 +38,32 @@ pub struct App {
     /// Rows between the newest row and the bottom of the thread pane. Zero
     /// keeps the newest message in view, which is where a thread opens.
     pub scroll: usize,
-    /// How many rows the thread pane held on the last frame, which is how far
-    /// a page key moves. Only the frame knows the pane's height.
+    /// How many rows the thread pane held on the last frame. A page key moves
+    /// half of it. Only the frame knows the pane's height.
     pub page: usize,
+    /// How many conversations half of the list pane held on the last frame,
+    /// which is how far a page key moves in the list.
+    pub list_page: usize,
+    /// The table of keys is open. Any key closes it.
+    pub keys_open: bool,
     pub quit: bool,
 }
+
+/// What each key does, drawn as the table `?` opens.
+pub const KEYS: &[(&str, &str)] = &[
+    ("Tab Shift-Tab", "move between the list and the conversation"),
+    ("j k, Down Up", "pick a conversation; in a conversation the arrows scroll a row"),
+    (
+        "g G, Home End",
+        "first and last conversation; in a conversation the oldest and newest message",
+    ),
+    ("Ctrl-D Ctrl-U, PgDn PgUp", "half a screen of the list or the thread"),
+    ("Enter l", "open the conversation"),
+    ("Esc", "back to the list"),
+    ("q", "quit from the list"),
+    ("Ctrl-C", "quit from anywhere"),
+    ("?", "show these keys, from the list"),
+];
 
 impl App {
     pub fn new(conversations: Vec<Conversation>, sample: bool) -> Self {
@@ -55,6 +76,8 @@ impl App {
             drafts: HashMap::new(),
             scroll: 0,
             page: 1,
+            list_page: 1,
+            keys_open: false,
             quit: false,
         }
     }
@@ -116,6 +139,10 @@ impl App {
             self.quit = true;
             return;
         }
+        if self.keys_open {
+            self.keys_open = false;
+            return;
+        }
         if matches!(key.code, KeyCode::Tab | KeyCode::BackTab) {
             self.focus = match self.focus {
                 Focus::List => Focus::Conversation,
@@ -131,22 +158,35 @@ impl App {
 
     fn list_key(&mut self, key: KeyEvent) {
         let current = self.selected_index().unwrap_or(0);
+        let control = key.modifiers.contains(KeyModifiers::CONTROL);
         match key.code {
+            KeyCode::Char('u') if control => self.select(current.saturating_sub(self.list_page)),
+            KeyCode::Char('d') if control => self.select(current.saturating_add(self.list_page)),
+            KeyCode::PageUp => self.select(current.saturating_sub(self.list_page)),
+            KeyCode::PageDown => self.select(current.saturating_add(self.list_page)),
             KeyCode::Up | KeyCode::Char('k') => self.select(current.saturating_sub(1)),
             KeyCode::Down | KeyCode::Char('j') => self.select(current + 1),
+            KeyCode::Home | KeyCode::Char('g') => self.select(0),
+            // select stops at the last row.
+            KeyCode::End | KeyCode::Char('G') => self.select(usize::MAX),
             KeyCode::Enter | KeyCode::Right | KeyCode::Char('l') => self.focus = Focus::Conversation,
-            KeyCode::Esc | KeyCode::Char('q') => self.quit = true,
+            KeyCode::Char('?') => self.keys_open = true,
+            KeyCode::Char('q') => self.quit = true,
             _ => {}
         }
     }
 
     fn conversation_key(&mut self, key: KeyEvent) {
+        let half = (self.page / 2).max(1);
+        let control = key.modifiers.contains(KeyModifiers::CONTROL);
         match key.code {
             KeyCode::Esc => self.focus = Focus::List,
             KeyCode::Up => self.scroll = self.scroll.saturating_add(1),
             KeyCode::Down => self.scroll = self.scroll.saturating_sub(1),
-            KeyCode::PageUp => self.scroll = self.scroll.saturating_add(self.page),
-            KeyCode::PageDown => self.scroll = self.scroll.saturating_sub(self.page),
+            KeyCode::Char('u') if control => self.scroll = self.scroll.saturating_add(half),
+            KeyCode::Char('d') if control => self.scroll = self.scroll.saturating_sub(half),
+            KeyCode::PageUp => self.scroll = self.scroll.saturating_add(half),
+            KeyCode::PageDown => self.scroll = self.scroll.saturating_sub(half),
             // The next frame's fit pulls this back to the oldest row.
             KeyCode::Home => self.scroll = usize::MAX,
             KeyCode::End => self.scroll = 0,
@@ -227,7 +267,38 @@ mod tests {
         assert_eq!(app.focus, Focus::Conversation);
         press(&mut app, KeyCode::Esc);
         assert_eq!(app.focus, Focus::List);
+        press(&mut app, KeyCode::Esc);
+        assert_eq!(app.focus, Focus::List);
         assert!(!app.quit);
+    }
+
+    #[test]
+    fn the_list_reaches_its_ends_and_moves_half_a_screen() {
+        let mut app = app();
+        let last = app.conversations.len() - 1;
+        app.list_page = 2;
+        press(&mut app, KeyCode::Char('G'));
+        assert_eq!(app.selected_index(), Some(last));
+        press(&mut app, KeyCode::Char('g'));
+        assert_eq!(app.selected_index(), Some(0));
+        app.handle_key(KeyEvent::new(KeyCode::Char('d'), KeyModifiers::CONTROL));
+        assert_eq!(app.selected_index(), Some(2));
+        press(&mut app, KeyCode::PageUp);
+        assert_eq!(app.selected_index(), Some(0));
+    }
+
+    #[test]
+    fn question_mark_opens_the_keys_from_the_list_and_types_in_a_conversation() {
+        let mut app = app();
+        press(&mut app, KeyCode::Char('?'));
+        assert!(app.keys_open);
+        press(&mut app, KeyCode::Char('q'));
+        assert!(!app.keys_open);
+        assert!(!app.quit);
+        press(&mut app, KeyCode::Tab);
+        press(&mut app, KeyCode::Char('?'));
+        assert!(!app.keys_open);
+        assert_eq!(app.draft(), "?");
     }
 
     #[test]
@@ -294,7 +365,7 @@ mod tests {
     }
 
     #[test]
-    fn the_thread_scrolls_by_row_and_by_page() {
+    fn the_thread_scrolls_by_row_and_by_half_a_screen() {
         let mut app = app();
         press(&mut app, KeyCode::Tab);
         app.fit(100, 10);
@@ -302,12 +373,16 @@ mod tests {
         press(&mut app, KeyCode::Up);
         assert_eq!(app.scroll, 2);
         press(&mut app, KeyCode::PageUp);
+        assert_eq!(app.scroll, 7);
+        app.handle_key(KeyEvent::new(KeyCode::Char('u'), KeyModifiers::CONTROL));
         assert_eq!(app.scroll, 12);
         press(&mut app, KeyCode::Down);
         press(&mut app, KeyCode::PageDown);
+        app.handle_key(KeyEvent::new(KeyCode::Char('d'), KeyModifiers::CONTROL));
         assert_eq!(app.scroll, 1);
         press(&mut app, KeyCode::PageDown);
         assert_eq!(app.scroll, 0);
+        assert_eq!(app.draft(), "");
     }
 
     #[test]

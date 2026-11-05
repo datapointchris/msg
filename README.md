@@ -61,11 +61,13 @@ escape codes is noise to whatever reads the pipe.
 | --- | --- | --- |
 | `Tab` `Shift-Tab` | move to the conversation | move to the list |
 | `↑` `↓` | pick a conversation (`k` `j` too) | scroll the thread one row |
-| `PgUp` `PgDn` | | scroll the thread one page |
-| `Home` `End` | | oldest and newest message |
+| `PgUp` `PgDn` | half a screen of the list | half a screen of the thread |
+| `Ctrl-U` `Ctrl-D` | half a screen of the list | half a screen of the thread |
+| `Home` `End` | first and last conversation (`g` `G` too) | oldest and newest message |
 | `Enter` | open the conversation (`→` `l` too) | nothing yet, there is no send |
 | `Backspace` | | delete one visible character, a flag or skin-toned emoji included |
-| `Esc` | quit | back to the list |
+| `Esc` | nothing | back to the list |
+| `?` | show the keys, which any key closes | types `?` |
 | `q` | quit | types `q` |
 | `Ctrl-C` | quit | quit |
 

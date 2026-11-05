@@ -8,10 +8,10 @@ use ratatui::Frame;
 use ratatui::layout::{Constraint, Layout, Position, Rect};
 use ratatui::style::{Color, Modifier, Style};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, List, ListItem, ListState, Paragraph};
+use ratatui::widgets::{Block, Clear, List, ListItem, ListState, Paragraph};
 use unicode_width::UnicodeWidthChar;
 
-use crate::app::{App, Focus};
+use crate::app::{App, Focus, KEYS};
 use crate::thread::{self, RowKind, Side};
 
 pub fn draw(frame: &mut Frame, app: &mut App) {
@@ -21,6 +21,25 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
     draw_list(frame, app, list_area);
     draw_thread(frame, app, thread_area);
     draw_compose(frame, app, compose_area);
+    if app.keys_open {
+        draw_keys(frame);
+    }
+}
+
+fn draw_keys(frame: &mut Frame) {
+    let area = frame.area();
+    let column = KEYS.iter().map(|(keys, _)| keys.len()).max().unwrap_or(0) + 2;
+    let lines: Vec<Line> = KEYS
+        .iter()
+        .map(|(keys, does)| {
+            Line::from(vec![
+                Span::styled(format!("{keys:<column$}"), Style::new().add_modifier(Modifier::BOLD)),
+                Span::raw(*does),
+            ])
+        })
+        .collect();
+    frame.render_widget(Clear, area);
+    frame.render_widget(Paragraph::new(lines).block(pane("Keys, and any key closes this", true)), area);
 }
 
 fn pane(title: &str, focused: bool) -> Block<'_> {
@@ -32,7 +51,7 @@ fn pane(title: &str, focused: bool) -> Block<'_> {
     Block::bordered().title(title).border_style(border)
 }
 
-fn draw_list(frame: &mut Frame, app: &App, area: Rect) {
+fn draw_list(frame: &mut Frame, app: &mut App, area: Rect) {
     let items: Vec<ListItem> = app
         .conversations
         .iter()
@@ -48,8 +67,15 @@ fn draw_list(frame: &mut Frame, app: &App, area: Rect) {
     } else {
         "Conversations"
     };
+    let mut block = pane(title, app.focus == Focus::List);
+    if app.focus == Focus::List {
+        block = block.title_bottom("? keys");
+    }
+    // A conversation takes two lines, so half the pane holds a quarter of its
+    // lines in conversations.
+    app.list_page = (usize::from(block.inner(area).height) / 4).max(1);
     let list = List::new(items)
-        .block(pane(title, app.focus == Focus::List))
+        .block(block)
         .highlight_style(Style::new().add_modifier(Modifier::REVERSED));
     let mut state = ListState::default().with_selected(app.selected_index());
     frame.render_stateful_widget(list, area, &mut state);
