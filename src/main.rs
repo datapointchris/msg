@@ -17,7 +17,9 @@ use crate::app::App;
 const EXAMPLES: &str = "\
 Examples:
   msg             open the view, with the list titled \"Conversations (sample data)\"
-  msg --version   the release's tag; a build from source prints 0.0.0";
+  msg --version   the release's tag; a build from source prints 0.0.0
+
+In the view, ? on the list shows every key, and q quits.";
 
 #[derive(Parser, Debug)]
 #[command(name = "msg", version, about, after_help = EXAMPLES)]
