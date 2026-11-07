@@ -14,8 +14,13 @@ use ratatui::crossterm::execute;
 
 use crate::app::App;
 
+const EXAMPLES: &str = "\
+Examples:
+  msg             open the view, with the list titled \"Conversations (sample data)\"
+  msg --version   the release's tag; a build from source prints 0.0.0";
+
 #[derive(Parser, Debug)]
-#[command(name = "msg", version, about)]
+#[command(name = "msg", version, about, after_help = EXAMPLES)]
 struct Cli {}
 
 fn main() -> anyhow::Result<()> {
