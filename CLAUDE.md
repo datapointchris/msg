@@ -28,7 +28,7 @@ not hand the thread to a wrapping `Paragraph` and scroll that: its row count is 
 stable ratatui, so the scroll offset would have nothing to be clamped against.
 
 **Tests assert the values a frame is built from**, the rows, the window and the key handling, never
-a rendered buffer. The width belongs to whoever runs it.
+a rendered buffer, whose contents depend on the width of the terminal the test happens to run in.
 
 ## Read this before choosing where to put the read path
 
@@ -75,10 +75,10 @@ inline.
 
 ## Generated files are not yours to edit
 
-`rustfmt.toml`, `rust-toolchain.toml`, `.pre-commit-config.yaml`,
-`.github/workflows/validate.yml`, `.editorconfig`, `.markdownlint.yaml` and `.shellcheckrc` are
-generated from a shared toolchain outside this repo. Change them at that source and re-sync; editing them here is undone on
-the next sync.
+`rustfmt.toml`, `rust-toolchain.toml`, `.pre-commit-config.yaml`, `.github/workflows/validate.yml`,
+`.editorconfig`, `.markdownlint.yaml` and `.shellcheckrc` are generated from a shared toolchain
+outside this repo. Change them at that source and re-sync; editing them here is undone on the next
+sync.
 
 `Cargo.toml`'s `version = "0.0.0"` is deliberate. The tag is the version and CI sets it at build
 time, so do not bump it.

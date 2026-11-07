@@ -197,8 +197,8 @@ mod tests {
         assert!(rows.iter().all(|row| row.width() <= 8));
     }
 
-    // A sender row is one row by construction and the pane clips it at its
-    // edge, so only text rows owe the bubble their width.
+    // A sender row is never wrapped, and the pane clips a long name at its
+    // edge, so only text rows are held to the bubble width.
     #[test]
     fn every_fixture_text_row_fits_its_bubble() {
         for pane_width in [1, 7, 20, 40, 80, 200] {

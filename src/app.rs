@@ -30,7 +30,8 @@ pub struct App {
     /// stays on one conversation when a new message reorders the list.
     selected: Option<String>,
     pub focus: Focus,
-    /// The conversations are invented, which the view labels on screen.
+    /// True for the built-in sample conversations, and the list's title then
+    /// reads `Conversations (sample data)`.
     pub sample: bool,
     /// One unsent draft per conversation id, so text typed for one person never
     /// follows the reader into another's thread, whatever row either sits on.
@@ -101,8 +102,9 @@ impl App {
         Some(self.drafts.entry(id).or_default())
     }
 
-    /// Appends pasted text to the draft. Line breaks are kept, since a message
-    /// can hold them.
+    /// Ignored outside a conversation. Line breaks are kept, with `\r\n` and `\r`
+    /// read as `\n`; a tab becomes a space and any other control character is
+    /// dropped.
     pub fn paste(&mut self, text: &str) {
         if self.focus != Focus::Conversation {
             return;
