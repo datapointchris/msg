@@ -75,9 +75,10 @@ In a conversation, the arrow and page keys scroll the thread and every other key
 and the composition line share that focus rather than taking turns. A reader scrolling back to
 check a detail carries on typing without a key in between. A `Ctrl` or `Alt` chord types nothing.
 
-In a group conversation, the sender's name holds the thread's top row while their messages scroll
-under it, so text whose name has scrolled off still says who sent it. It covers the row beneath
-rather than pushing the thread down. It gives way as the next sender's own name reaches the top.
+In a group conversation, once a sender's name has scrolled off the top, the thread's top row shows
+it again as `↑ Ana` while their messages fill the rows beneath it. It covers the top row rather
+than pushing the thread down. It gives way when the last row of their run reaches the top, which
+then shows unnamed rather than lose its text under the name.
 
 Each conversation keeps its own draft. The draft and the selection follow the conversation, not its
 row in the list. A list that reorders never carries text typed for one person into another's

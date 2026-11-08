@@ -8,10 +8,10 @@
 //! pane's width, and the pane draws exactly these rows with no wrapping of its
 //! own, so the row count scrolled and the row count drawn are one number.
 //!
-//! In a group thread, the row naming a sender stays at the top of the pane
-//! while the run of their messages under it scrolls past, as sticky scroll does
-//! in an editor. That band covers the window's first row rather than pushing
-//! the rows down, so it changes neither count.
+//! In a group thread, a sender's name comes back over the top of the pane once
+//! their own name row has scrolled off, while their run fills the rows under
+//! it, as sticky scroll does in an editor. That band covers the window's first
+//! row rather than pushing the rows down, so it changes neither count.
 
 use std::ops::Range;
 
@@ -35,6 +35,9 @@ pub enum RowKind {
     Text,
     /// The blank row separating two messages.
     Gap,
+    /// A sender's name drawn over the top row while their run scrolls under
+    /// it, so the pane can mark it apart from the sender row it repeats.
+    Band,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -70,9 +73,10 @@ pub fn layout(conversation: &Conversation, pane_width: usize) -> Vec<Row> {
             Sender::Me => Side::Mine,
             Sender::Them(_) => Side::Theirs,
         };
+        let starts_run = previous != Some(&message.from);
         // A gap between two runs belongs to neither, so the band never names
         // the run below it over the run above.
-        if previous != Some(&message.from) {
+        if starts_run {
             run = None;
         }
         if index > 0 {
@@ -86,7 +90,7 @@ pub fn layout(conversation: &Conversation, pane_width: usize) -> Vec<Row> {
         }
         if let Sender::Them(name) = &message.from
             && conversation.group
-            && previous != Some(&message.from)
+            && starts_run
         {
             rows.push(Row {
                 message: index,
@@ -162,17 +166,33 @@ pub fn max_scroll(total: usize, height: usize) -> usize {
 /// The rows in view, given how many rows the pane holds and how far the reader
 /// has scrolled up from the newest row. An offset past the oldest row shows
 /// the oldest rows rather than an empty pane.
-pub fn window(total: usize, height: usize, scroll: usize) -> Range<usize> {
+fn window(total: usize, height: usize, scroll: usize) -> Range<usize> {
     let end = total - scroll.min(max_scroll(total, height));
     end.saturating_sub(height)..end
 }
 
-/// The sender row drawn over the window's first row, once that row's sender
-/// has scrolled off above it. The band covers that first row, so it names
-/// whoever sent the row it leaves showing, and names nobody where the next
-/// run's sender arrives under it. It takes at most a third of the pane, so a
-/// pane under three rows draws none.
-pub fn band(rows: &[Row], window: &Range<usize>, height: usize) -> Option<usize> {
+/// The rows the pane draws, top first: the window, with the band in place of
+/// its first row.
+pub fn visible(rows: &[Row], height: usize, scroll: usize) -> Vec<Row> {
+    let window = window(rows.len(), height, scroll);
+    let mut shown = rows[window.clone()].to_vec();
+    if let Some(owner) = band(rows, &window, height) {
+        shown[0] = Row {
+            kind: RowKind::Band,
+            owner: None,
+            ..rows[owner].clone()
+        };
+    }
+    shown
+}
+
+/// The sender row the band repeats over the window's first row, once that
+/// row's sender has scrolled off above it. The band covers that first row, so
+/// it names whoever sent the row it leaves showing. It names nobody once that
+/// row is a sender row or the gap ending a run, so a run's last row reaches the
+/// top unnamed rather than lose its text under a name. It takes at most a third
+/// of the pane, so a pane under three rows draws none.
+fn band(rows: &[Row], window: &Range<usize>, height: usize) -> Option<usize> {
     if height < 3 {
         return None;
     }
@@ -305,29 +325,35 @@ mod tests {
             vec![
                 message(them("Ana"), "a1\na2\na3"),
                 message(them("Ana"), "b"),
-                message(them("Jo"), "c1\nc2"),
+                message(them("Jo"), "c1\nc2\nc3"),
             ],
         );
+        // Rows: Ana, a1, a2, a3, gap, b, gap, Jo, c1, c2, c3.
         let rows = layout(&thread, 40);
-        let named: Vec<_> = (0..rows.len() - 1)
-            .map(|start| band(&rows, &(start..rows.len()), 10).map(|row| rows[row].text.as_str()))
-            .collect();
-        // Rows: Ana, a1, a2, a3, gap, b, gap, Jo, c1, c2.
+        let shown = |height, scroll| -> Vec<String> {
+            visible(&rows, height, scroll)
+                .iter()
+                .map(|row| format!("{:?} {}", row.kind, row.text))
+                .collect()
+        };
+        let tops: Vec<_> = (0..=8).rev().map(|scroll| shown(3, scroll)[0].clone()).collect();
         assert_eq!(
-            named,
+            tops,
             [
-                None,
-                Some("Ana"),
-                Some("Ana"),
-                Some("Ana"),
-                Some("Ana"),
-                None,
-                None,
-                None,
-                Some("Jo")
+                "Sender Ana",
+                "Band Ana",
+                "Band Ana",
+                "Band Ana",
+                "Band Ana",
+                "Text b",
+                "Gap ",
+                "Sender Jo",
+                "Band Jo"
             ]
         );
-        assert_eq!(band(&rows, &(1..3), 2), None);
+        // The band covers the first row rather than pushing the rest down.
+        assert_eq!(shown(3, 7), ["Band Ana", "Text a2", "Text a3"]);
+        assert_eq!(shown(2, 7), ["Text a2", "Text a3"]);
     }
 
     #[test]
