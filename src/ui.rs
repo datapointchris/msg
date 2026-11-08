@@ -91,24 +91,27 @@ fn draw_thread(frame: &mut Frame, app: &mut App, area: Rect) {
     let rows = thread::layout(conversation, usize::from(inner.width));
     let height = usize::from(inner.height);
 
-    let lines: Vec<Line> = rows[thread::window(rows.len(), height, app.scroll)]
-        .iter()
-        .map(|row| {
-            let style = match (row.kind, row.side) {
-                (RowKind::Sender, _) => Style::new().fg(Color::DarkGray),
-                (_, Side::Mine) => Style::new().fg(Color::Blue),
-                (_, Side::Theirs) => Style::new(),
-            };
-            let line = Line::styled(row.text.as_str(), style);
-            match row.side {
-                Side::Mine => line.right_aligned(),
-                Side::Theirs => line.left_aligned(),
-            }
-        })
-        .collect();
+    let window = thread::window(rows.len(), height, app.scroll);
+    let mut lines: Vec<Line> = rows[window.clone()].iter().map(row_line).collect();
+    if let Some(owner) = thread::band(&rows, &window, height) {
+        lines[0] = row_line(&rows[owner]);
+    }
     let total = rows.len();
     frame.render_widget(Paragraph::new(lines).block(block), area);
     app.fit(total, height);
+}
+
+fn row_line(row: &thread::Row) -> Line<'_> {
+    let style = match (row.kind, row.side) {
+        (RowKind::Sender, _) => Style::new().fg(Color::DarkGray),
+        (_, Side::Mine) => Style::new().fg(Color::Blue),
+        (_, Side::Theirs) => Style::new(),
+    };
+    let line = Line::styled(row.text.as_str(), style);
+    match row.side {
+        Side::Mine => line.right_aligned(),
+        Side::Theirs => line.left_aligned(),
+    }
 }
 
 fn draw_compose(frame: &mut Frame, app: &App, area: Rect) {

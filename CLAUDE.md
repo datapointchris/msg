@@ -19,7 +19,7 @@ The view is split so the data source can be swapped without touching rendering:
 | `src/conversation.rs` | the `Conversation` and `Message` types the view renders, whatever their source |
 | `src/fixture.rs` | the sample data |
 | `src/app.rs` | the state, and what each key does to it |
-| `src/thread.rs` | wrapping a thread into rows and choosing which rows are in view |
+| `src/thread.rs` | wrapping a thread into rows, choosing which rows are in view, and which sender's name holds the top |
 | `src/ui.rs` | drawing one frame from the state |
 
 **A thread scrolls in rendered rows.** `thread::layout` wraps every message at the pane's width and
