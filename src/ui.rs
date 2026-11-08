@@ -91,24 +91,28 @@ fn draw_thread(frame: &mut Frame, app: &mut App, area: Rect) {
     let rows = thread::layout(conversation, usize::from(inner.width));
     let height = usize::from(inner.height);
 
-    let lines: Vec<Line> = rows[thread::window(rows.len(), height, app.scroll)]
-        .iter()
-        .map(|row| {
-            let style = match (row.kind, row.side) {
-                (RowKind::Sender, _) => Style::new().fg(Color::DarkGray),
-                (_, Side::Mine) => Style::new().fg(Color::Blue),
-                (_, Side::Theirs) => Style::new(),
-            };
-            let line = Line::styled(row.text.as_str(), style);
-            match row.side {
-                Side::Mine => line.right_aligned(),
-                Side::Theirs => line.left_aligned(),
-            }
-        })
-        .collect();
+    let shown = thread::visible(&rows, height, app.scroll);
+    let lines: Vec<Line> = shown.iter().map(row_line).collect();
     let total = rows.len();
     frame.render_widget(Paragraph::new(lines).block(block), area);
     app.fit(total, height);
+}
+
+fn row_line(row: &thread::Row) -> Line<'_> {
+    let style = match (row.kind, row.side) {
+        (RowKind::Sender | RowKind::Band, _) => Style::new().fg(Color::DarkGray),
+        (_, Side::Mine) => Style::new().fg(Color::Blue),
+        (_, Side::Theirs) => Style::new(),
+    };
+    // The arrow keeps the fragment under it from reading as a message's start.
+    if row.kind == RowKind::Band {
+        return Line::styled(format!("↑ {}", row.text), style).left_aligned();
+    }
+    let line = Line::styled(row.text.as_str(), style);
+    match row.side {
+        Side::Mine => line.right_aligned(),
+        Side::Theirs => line.left_aligned(),
+    }
 }
 
 fn draw_compose(frame: &mut Frame, app: &App, area: Rect) {
