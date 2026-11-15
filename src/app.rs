@@ -16,6 +16,7 @@ use ratatui::crossterm::event::{KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use unicode_segmentation::UnicodeSegmentation;
 
 use crate::conversation::Conversation;
+use crate::thread::{self, Row};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Focus {
@@ -48,6 +49,25 @@ pub struct App {
     /// The table of keys is open. Any key closes it.
     pub keys_open: bool,
     pub quit: bool,
+    /// The selected thread's rows as last laid out. Wrapping every message
+    /// costs the whole thread, and a typed character or a scroll redraws the
+    /// frame without changing any of it, so those frames reuse these rows.
+    thread_layout: Option<ThreadLayout>,
+}
+
+/// What a thread's rows are built from. Messages arrive at the end of a
+/// thread, so their count says whether the thread changed.
+#[derive(Debug, PartialEq, Eq)]
+struct LayoutKey {
+    conversation: String,
+    pane_width: usize,
+    messages: usize,
+}
+
+#[derive(Debug)]
+struct ThreadLayout {
+    key: LayoutKey,
+    rows: Vec<Row>,
 }
 
 /// What each key does, drawn as the table `?` opens.
@@ -80,7 +100,26 @@ impl App {
             list_page: 1,
             keys_open: false,
             quit: false,
+            thread_layout: None,
         }
+    }
+
+    /// The selected thread laid out at the pane's width, rebuilt only when the
+    /// conversation, the width or its message count differs from the last call.
+    pub fn thread_rows(&mut self, pane_width: usize) -> &[Row] {
+        let Some(conversation) = self.conversation() else {
+            return &[];
+        };
+        let key = LayoutKey {
+            conversation: conversation.id.clone(),
+            pane_width,
+            messages: conversation.messages.len(),
+        };
+        if self.thread_layout.as_ref().is_none_or(|layout| layout.key != key) {
+            let rows = thread::layout(conversation, pane_width);
+            self.thread_layout = Some(ThreadLayout { key, rows });
+        }
+        self.thread_layout.as_ref().map_or(&[], |layout| &layout.rows)
     }
 
     /// The selected conversation's row in the list.
@@ -407,5 +446,25 @@ mod tests {
         press(&mut app, KeyCode::Tab);
         press(&mut app, KeyCode::Down);
         assert_eq!(app.scroll, 0);
+    }
+
+    #[test]
+    fn the_thread_is_laid_out_again_on_a_resize_a_new_message_or_another_conversation() {
+        let mut app = app();
+        let rows_at = |app: &mut App, width| app.thread_rows(width).to_vec();
+        let expected = |app: &App, width| thread::layout(app.conversation().unwrap(), width);
+
+        assert_eq!(rows_at(&mut app, 80), expected(&app, 80));
+        assert_eq!(rows_at(&mut app, 20), expected(&app, 20));
+
+        let index = app.selected_index().unwrap();
+        app.conversations[index].messages.push(crate::conversation::Message {
+            from: crate::conversation::Sender::Me,
+            text: "one more".to_owned(),
+        });
+        assert_eq!(rows_at(&mut app, 20), expected(&app, 20));
+
+        press(&mut app, KeyCode::Down);
+        assert_eq!(rows_at(&mut app, 20), expected(&app, 20));
     }
 }

@@ -86,14 +86,16 @@ fn draw_thread(frame: &mut Frame, app: &mut App, area: Rect) {
         frame.render_widget(pane("", false), area);
         return;
     };
-    let block = pane(&conversation.name, app.focus == Focus::Conversation);
+    let name = conversation.name.clone();
+    let block = pane(&name, app.focus == Focus::Conversation);
     let inner = block.inner(area);
-    let rows = thread::layout(conversation, usize::from(inner.width));
     let height = usize::from(inner.height);
+    let scroll = app.scroll;
+    let rows = app.thread_rows(usize::from(inner.width));
 
-    let shown = thread::visible(&rows, height, app.scroll);
-    let lines: Vec<Line> = shown.iter().map(row_line).collect();
+    let shown = thread::visible(rows, height, scroll);
     let total = rows.len();
+    let lines: Vec<Line> = shown.iter().map(row_line).collect();
     frame.render_widget(Paragraph::new(lines).block(block), area);
     app.fit(total, height);
 }
