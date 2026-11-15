@@ -34,8 +34,9 @@ nowhere to learn the latest number from. Given a version, it fetches the release
 one, it reads `0.0.0` from the checkout, finds no such release, and silently compiles from source.
 `--version <x.y.z>` pins one release by hand.
 
-msg is not published to crates.io. The name there belongs to an unrelated XSI message-queue
-binding, and a personal tool gains nothing from the registry but a name to defend.
+msg is not published to crates.io, because the name there belongs to an unrelated XSI
+message-queue binding. Every release is on GitHub, and the binstall metadata in `Cargo.toml` points
+`cargo binstall` at it.
 
 ## Starting from scratch
 

@@ -12,9 +12,9 @@ repository = "https://github.com/datapointchris/msg"
 # line here could be relicensed at will.
 license = "GPL-3.0-or-later"
 
-# crates.io already has an unrelated `msg` (an XSI message queue binding), and a
-# personal tool gains nothing from the registry but a name to defend. Distribution
-# is a GitHub release plus the binstall metadata below.
+# crates.io already has an unrelated `msg` (an XSI message queue binding), so the
+# name is not free there. Distribution is a GitHub release plus the binstall
+# metadata below.
 publish = false
 
 [dependencies]
