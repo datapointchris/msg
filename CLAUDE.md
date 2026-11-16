@@ -56,10 +56,10 @@ dictionary. The working channels are `sqlite3 -readonly` for reads and `shortcut
 both over plain SSH.
 
 **Do not scrape `hex(attributedBody)` with a regex.** It is the widely-posted answer and it is
-regex over structured data, which breaks on attachments, tapbacks and link previews. 92% of
-messages have no usable `text` column, so this path is not an edge case — it is the main one. How
-to decode it properly is an open decision recorded in the project tracker, not something to settle
-inline.
+regex over structured data, which breaks on attachments, tapbacks and link previews. This path is
+the main one rather than an edge case, as the `text` column measurement at the end of this file
+shows. How to decode it properly is an open decision recorded in the project tracker, not something
+to settle inline.
 
 ## Shortcuts gotchas, each paid for once
 
