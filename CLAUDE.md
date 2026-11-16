@@ -22,10 +22,9 @@ The view is split so the data source can be swapped without touching rendering:
 | `src/thread.rs` | wrapping a thread into rows, choosing which rows are in view, and which sender's name holds the top |
 | `src/ui.rs` | drawing one frame from the state |
 
-**A thread scrolls in rendered rows.** `thread::layout` wraps every message at the pane's width and
-the pane draws those rows unwrapped, so the offset scrolled and the rows drawn are one count. Do
-not hand the thread to a wrapping `Paragraph` and scroll that: its row count is not available on
-stable ratatui, so the scroll offset would have nothing to be clamped against.
+**A thread scrolls in rendered rows**, which the module doc of `src/thread.rs` lays out. Do not
+hand the thread to a wrapping `Paragraph` and scroll that: its row count is not available on stable
+ratatui, so the scroll offset would have nothing to be clamped against.
 
 **Tests assert the values a frame is built from**, the rows, the window and the key handling, never
 a rendered buffer, whose contents depend on the width of the terminal the test happens to run in.
