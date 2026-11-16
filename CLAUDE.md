@@ -74,8 +74,7 @@ to settle inline.
 
 ## Generated files are not yours to edit
 
-`rustfmt.toml`, `rust-toolchain.toml`, `.pre-commit-config.yaml`, `.github/workflows/validate.yml`,
-`.editorconfig`, `.markdownlint.yaml` and `.shellcheckrc` are generated from a shared toolchain
+The files README.md lists under "Building from source" are generated from a shared toolchain
 outside this repo. Change them at that source and re-sync; editing them here is undone on the next
 sync.
 
