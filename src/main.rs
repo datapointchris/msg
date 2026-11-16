@@ -72,3 +72,37 @@ fn run(terminal: &mut DefaultTerminal, app: &mut App) -> io::Result<()> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use clap::{Command, CommandFactory};
+
+    use super::Cli;
+
+    /// Every command a help screen lists and a reader can run, whatever its depth.
+    fn listed_leaves(command: &Command) -> Vec<&Command> {
+        if command.is_hide_set() {
+            return Vec::new();
+        }
+        let children: Vec<&Command> = command.get_subcommands().filter(|c| c.get_name() != "help").collect();
+        if children.is_empty() {
+            return vec![command];
+        }
+        children.into_iter().flat_map(listed_leaves).collect()
+    }
+
+    /// A reader who reaches a command by tab-completion lands on its help, so
+    /// each one carries a command to copy. Reads the field, not rendered help.
+    #[test]
+    fn every_listed_leaf_carries_an_example() {
+        let root = Cli::command();
+        let leaves = listed_leaves(&root);
+        assert!(!leaves.is_empty());
+        let missing: Vec<&str> = leaves
+            .iter()
+            .filter(|c| !c.get_after_help().is_some_and(|h| h.to_string().contains("Examples:")))
+            .map(|c| c.get_name())
+            .collect();
+        assert!(missing.is_empty(), "commands with no Examples block: {missing:?}");
+    }
+}
