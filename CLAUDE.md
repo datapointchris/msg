@@ -47,6 +47,35 @@ and only the blob decoder is used — in which case the schema work is yours.
 
 Decide it before writing the module, not during. It is tracked as its own item.
 
+## Every external effect has one door
+
+msg reaches two things it does not implement, both over plain SSH:
+
+- **Reads** run `sqlite3 -readonly` against `chat.db`, or open a local copy through `rusqlite` if
+  the local-copy design wins.
+- **Sends** run `shortcuts run <name> -i <file>`.
+
+Each gets exactly one wrapper when it arrives, named here beside its effect, and every caller uses
+it. The SSH host, the timeout and turning an exit code into an error attach there once. No other
+module builds an `ssh`, `sqlite3` or `shortcuts` command line.
+
+## Each wrapper lands with the test that crosses its wire
+
+A stub proves the decisions a wrapper makes. It cannot prove the command line the wrapper builds,
+which fails on the first option spelled differently than its author remembered. So each wrapper
+lands with one test that drives it against a real instance the test starts itself:
+
+- **The read wrapper** runs a real `sqlite3` or `rusqlite` against a temporary database the test
+  creates, holding the tables the query reads in Apple's column shape. SSH is the transport rather
+  than the subject, so the test runs the same query locally. A query that matches nothing still
+  exits 0 with empty output, and the wrapper reads that as no messages rather than a failure.
+- **The send wrapper** cannot meet a real `shortcuts`, which runs only on macOS. Its fake refuses
+  what the real channel refuses. An unreachable host makes `ssh` exit 255 with its reason on
+  stderr. A shortcut that is not installed exits nonzero. A delivered send returns the shortcut's
+  own output on stdout.
+
+A fake that replays a captured success tests only the path the code already handles.
+
 ## The two things most likely to waste your time
 
 **Do not reach for AppleScript.** It is broken on macOS 15.7.7 in both directions and was verified
