@@ -127,30 +127,37 @@ pub fn wrap(text: &str, width: usize) -> Vec<String> {
     let mut rows = Vec::new();
 
     for line in text.split('\n') {
+        // `row_width` is kept beside `row` so each word and char is compared
+        // against a running count rather than a re-measure of the whole row.
         let mut row = String::new();
+        let mut row_width = 0;
         for word in line.split_whitespace() {
-            let needed = if row.is_empty() {
-                word.width()
-            } else {
-                row.width() + 1 + word.width()
-            };
+            let word_width = word.width();
+            let needed = if row.is_empty() { word_width } else { row_width + 1 + word_width };
             if needed <= width {
                 if !row.is_empty() {
                     row.push(' ');
                 }
                 row.push_str(word);
+                row_width = needed;
                 continue;
             }
             if !row.is_empty() {
                 rows.push(std::mem::take(&mut row));
+                row_width = 0;
             }
             for ch in word.chars() {
                 let ch_width = ch.width().unwrap_or(0);
-                if row.width() + ch_width > width && !row.is_empty() {
+                if row_width + ch_width > width && !row.is_empty() {
                     rows.push(std::mem::take(&mut row));
+                    row_width = 0;
                 }
                 row.push(ch);
+                row_width += ch_width;
             }
+            // A cut word's tail is measured once as a string, because an emoji
+            // sequence can be wider than the sum of its chars.
+            row_width = row.width();
         }
         rows.push(row);
     }
